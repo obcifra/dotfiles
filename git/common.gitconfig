@@ -10,8 +10,6 @@
   gpgSign = true
 [alias]
   lg = log --graph --oneline --decorate --all
-[include]
-  path = ~/.gitconfig-local
 [color]
   branch = auto
   diff = auto
@@ -31,3 +29,7 @@
   colorMoved = zebra
 [merge]
   tool = vimdiff
+[include]
+  path = ~/.gitconfig-local
+[includeIf "gitdir:~/workspace/"]
+  path = ~/.gitconfig-workspace
