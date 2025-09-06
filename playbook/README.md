@@ -20,6 +20,20 @@ source .venv/bin/activate
 
 The following plays have not yet migrated to an Ansible playbook.
 
+### Draft: Installing a new Template
+```bash
+# dom0
+qvm-temlate install <template-name>
+```
+
+### Draft: Create Disposable VM Template
+```bash
+# dom0
+qvm-create --template <template-name> --label red <template-name-dvm>
+qvm-prefs <template-name-dvm> template_for_dispvms True
+qvm-features <template-name-dvm> appmenus-dispvm 1
+```
+
 ### Draft: Install Yubikey Manager
 In a disposable VM:
 ```bash 
