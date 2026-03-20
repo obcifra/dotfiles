@@ -1,9 +1,28 @@
 #!/usr/bin/env bash
 
+# Functions {{{
+pathremove () {
+  local IFS=':'
+  local NEWPATH
+  local DIR
+  local PATHVARIABLE=${2:-PATH}
+  for DIR in ${!PATHVARIABLE} ; do
+    if [ "$DIR" != "$1" ] ; then
+      NEWPATH=${NEWPATH:+$NEWPATH:}$DIR
+    fi
+  done
+  export $PATHVARIABLE="$NEWPATH"
+}
+# }}}
+
 # Global /etc/bashrc {{{
 if [ -f "/etc/bashrc" ]; then
   source "/etc/bashrc"
 fi
+
+# Not a puppet
+pathremove "/opt/puppetlabs/puppet/bin"
+pathremove "/opt/puppetlabs/bin"
 # }}}
 
 # Bash Colors {{{
