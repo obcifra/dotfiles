@@ -108,6 +108,9 @@ uninstall() {
   # GPG
   symremove "gpg/gpg.conf" "${prefix}/.gnupg" "gpg.conf"
 
+  # Agents
+  symremove "agents" "${prefix}" # .agents
+
 }
 
 install() {
@@ -177,6 +180,8 @@ install() {
     print_warning "GPG is not installed; skipping gpg.conf setup."
   fi
 
+  # Agents
+  dotinstall "agents" "${prefix}" # .agents
 }
 
 # Parse options

@@ -1,5 +1,5 @@
 ---
-name: new-project
+name: new-pyproject
 argument-hint: "Project name (optional)"
 description: "Initialize a new Python project in an empty repository."
 agent: agent
