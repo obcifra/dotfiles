@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Usage: play [--check] <playbook-file.yml>
+# Runs the given Ansible playbook using uvx ansible-playbook, or ansible-lint with --check
+
+set -euo pipefail
+
+CHECK_MODE=0
+
+if [ "$#" -eq 2 ] && [ "$1" = "--check" ]; then
+    CHECK_MODE=1
+    PLAYBOOK_FILE="$2"
+elif [ "$#" -eq 1 ]; then
+    PLAYBOOK_FILE="$1"
+else
+    echo "Usage: $0 [--check] <playbook-file.yml>" >&2
+    exit 1
+fi
+
+if [ ! -f "$PLAYBOOK_FILE" ]; then
+    echo "Error: File '$PLAYBOOK_FILE' does not exist." >&2
+    exit 2
+fi
+
+if [ "$CHECK_MODE" -eq 1 ]; then
+    uvx ansible-lint "$PLAYBOOK_FILE"
+else
+    uvx --from ansible-core ansible-playbook "$PLAYBOOK_FILE"
+fi

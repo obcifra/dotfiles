@@ -1,21 +1,11 @@
-# Initialization
+# Executing 
 
-To set up a Python virtual environment and install all required packages for the playbooks, run:
-
-```bash
-./setup.sh
-```
-
-This will:
-- Create a virtual environment in `.venv` (if it doesn't exist)
-- Activate the virtual environment
-- Install all packages from `requirements.txt`
-
-To activate the virtual environment in a new shell session, run:
+To execute a playbook:
 
 ```bash
-source .venv/bin/activate
+./play <playbook-file.yml>
 ```
+
 ## Drafts
 
 The following plays have not yet migrated to an Ansible playbook.
