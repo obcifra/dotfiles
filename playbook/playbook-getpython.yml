@@ -1,35 +1,49 @@
 - name: Configure Python Environment
   hosts: localhost
   vars:
-    pyenv_version: "v2.4.17"
-    python_version: "3.12.0"
+    uv_version: "0.11.0"
+    uv_checksum: "cc0fbb42b3642125f600a55b0b095bea65cddaadb94c6ea2b6ba5d79c5825089"
+    python_versions: 
+      - "3.10"
+      - "3.11"
+      - "3.12"
+      - "3.13"
   become: false
   environment:
     TMPDIR: "{{ alt_tmpdir | default('/tmp') }}"
   tasks:
-    - name: Configure pyenv
-      ansible.builtin.git:
-        repo: https://github.com/pyenv/pyenv.git
-        dest: "{{ ansible_env.HOME }}/.pyenv"
-        version: "{{ pyenv_version }}"
+    - name: Create temporary directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: ansible
+      register: tmpdir
+      check_mode: false
 
-    - name: Install new default Python version using pyenv
+    - name: Download uv
+      ansible.builtin.get_url:
+        url: "https://releases.astral.sh/github/uv/releases/download/{{ uv_version }}/uv-x86_64-unknown-linux-gnu.tar.gz"
+        dest: "{{ tmpdir.path }}"
+        mode: "0700"
+        checksum: "sha256:{{ uv_checksum }}"
+
+    - name: Extract uv
+      ansible.builtin.unarchive:
+        src: "{{ tmpdir.path }}/uv-x86_64-unknown-linux-gnu.tar.gz"
+        dest: "{{ ansible_env.HOME }}/.local"
+      args:
+        creates: "{{ ansible_env.HOME }}/.local/uv-x86_64-unknown-linux-gnu"
+  
+    - name: Add uv to path
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc_local"
+        line: "export PATH={{ ansible_env.HOME }}/.local/uv-x86_64-unknown-linux-gnu:$PATH"
+        mode: "0644"
+        create: true
+
+    - name: Install python versions
       ansible.builtin.shell: |
-        export PYENV_ROOT="$HOME/.pyenv"
-        export PATH="$PYENV_ROOT/bin:$PATH"
-        eval "$(pyenv init --path)"
-        pyenv install {{ python_version }}
+        export PATH="{{ ansible_env.HOME }}/.local/uv-x86_64-unknown-linux-gnu:$PATH"
+        uv python install {{ item }}
       args:
         executable: /bin/bash
-        creates: "{{ ansible_env.HOME }}/.pyenv/versions/{{ python_version }}"
-
-    - name: Ensure core pip packages are installed
-      ansible.builtin.pip:
-        name: "{{ item }}"
-        state: present
-        extra_args: --user
-      with_items:
-        - pip
-        - ansible
-        - ansible-lint
-        - poetry
+      with_items: "{{ python_versions }}"
