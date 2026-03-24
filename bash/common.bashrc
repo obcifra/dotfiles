@@ -72,14 +72,6 @@ if [[ -d "$HOME/.nvm" ]]; then
 fi
 # }}}
 
-# pyenv {{{
-if [[ -d "$HOME/.pyenv" ]]; then
-  export PYENV_ROOT="$HOME/.pyenv"
-  command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-  eval "$(pyenv init -)"
-fi
-# }}}
-
 # Kerberos {{{
 if [[ -d "$HOME/.local/krb5" ]]; then
   KRB5_ROOT="$HOME/.local/krb5"
@@ -94,23 +86,6 @@ if [[ -d "$HOME/.local/texlive" ]]; then
   export TEXLIVE_ROOT="$HOME/.local/texlive/2023/bin/x86_64-linux/"
   export PATH="$TEXLIVE_ROOT:$PATH"
 fi
-# }}}
-
-# anaconda {{{
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$("$HOME/anaconda3/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]; then
-        . "$HOME/anaconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="$HOME/anaconda3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
 # }}}
 
 # GPG Tools {{{

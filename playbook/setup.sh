@@ -3,7 +3,7 @@
 
 set -e
 
-VENV_DIR=".venv"
+VENV_DIR=".venv-dotfiles"
 REQ_FILE="requirements.txt"
 
 # Use system python3
