@@ -3,35 +3,43 @@
   hosts: localhost
   become: false
   environment:
-    TMPDIR: "{{ alt_tmpdir | default('/tmp') }}"
+    TMPDIR: "{{ TMPDIR | default('/tmp') }}"
   vars:
     tools:
+      - name: mdbook
+        version: 0.5.2
+        exe: mdbook
+
+      - name: mdbook-mermaid
+        version: 0.17.0
+        exe: mdbook-mermaid
+
       - name: exa # ls
         version: 0.10.1
         exe: exa
 
       - name: fd-find # find
-        version: 10.2.0
+        version: 10.4.2
         exe: fd
 
       - name: ripgrep # grep
-        version: 14.1.1
+        version: 15.1.0
         exe: rg
 
       - name: bat # cat
-        version: 0.24.0
+        version: 0.26.1
         exe: bat
 
       - name: grex # regexgen
-        version: 1.4.5
+        version: 1.4.6
         exe: grex
 
       - name: tokei # cloc
-        version: 12.1.2
+        version: 14.0.0
         exe: tokei
 
       - name: du-dust # du
-        version: 1.0.0
+        version: 1.2.4
         exe: dust
 
       - name: eva # bc

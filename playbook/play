@@ -1,20 +1,56 @@
 #!/usr/bin/env bash
-# Usage: play [--check] <playbook-file.yml>
 # Runs the given Ansible playbook using uvx ansible-playbook, or ansible-lint with --check
+
+usage() {
+    echo "Usage: $0 [-c|--check] [-e|--extra-vars VAR=VAL] <playbook-file.yml>"
+    echo "       $0 -h|--help"
+    echo "Runs the given Ansible playbook using uvx ansible-playbook, or ansible-lint with --check."
+}
 
 set -euo pipefail
 
 CHECK_MODE=0
+EXTRA_VARS=()
 
-if [ "$#" -eq 2 ] && [ "$1" = "--check" ]; then
-    CHECK_MODE=1
-    PLAYBOOK_FILE="$2"
-elif [ "$#" -eq 1 ]; then
-    PLAYBOOK_FILE="$1"
-else
-    echo "Usage: $0 [--check] <playbook-file.yml>" >&2
+# Option parsing using getopt
+PARSED=$(getopt -o hce: -l help,check,extra-vars: -- "$@")
+if [ $? -ne 0 ]; then
+    usage >&2
     exit 1
 fi
+eval set -- "$PARSED"
+
+while true; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -c|--check)
+            CHECK_MODE=1
+            shift
+            ;;
+        -e|--extra-vars)
+            EXTRA_VARS+=("-e" "$2")
+            shift 2
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [ "$#" -ne 1 ]; then
+    usage >&2
+    exit 1
+fi
+
+PLAYBOOK_FILE="$1"
 
 if [ ! -f "$PLAYBOOK_FILE" ]; then
     echo "Error: File '$PLAYBOOK_FILE' does not exist." >&2
@@ -24,5 +60,5 @@ fi
 if [ "$CHECK_MODE" -eq 1 ]; then
     uvx ansible-lint "$PLAYBOOK_FILE"
 else
-    uvx --from ansible-core ansible-playbook "$PLAYBOOK_FILE"
+    uvx --from ansible-core ansible-playbook "${EXTRA_VARS[@]}" "$PLAYBOOK_FILE"
 fi
