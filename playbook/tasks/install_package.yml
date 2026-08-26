@@ -26,6 +26,23 @@
     mode: "0700"
   when: package_type == "binary"
 
+- name: Make {{ package_name }}
+  block:
+    - name: Unarchive {{ package_name }}
+      ansible.builtin.unarchive:
+        src: "{{ local_cache.path }}/{{ package_name }}"
+        dest: "{{ local_stage.path }}"
+
+    - name: Identify Path
+      ansible.builtin.set_fact:
+        package_path: "{{ package_name | regex_replace('\\.(tar\\.gz|tgz|tar\\.xz|tar\\.bz2|zip)$', '') }}"
+
+    - name: Install {{ package_path }}
+      ansible.builtin.command:
+        cmd: "make install PREFIX='{{ ansible_env.HOME }}/.local'"
+        chdir: "{{ local_stage.path }}/{{ package_path }}"
+  when: package_type == "source-archive"
+
 - name: Create symlinks
   ansible.builtin.file:
     src: "{{ local_stage.path }}/{{ item.src }}"

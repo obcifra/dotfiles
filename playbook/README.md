@@ -1,21 +1,21 @@
 # Initialization
 
-To set up a Python virtual environment and install all required packages for the playbooks, run:
+Install uv:
 
 ```bash
-./setup.sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-This will:
-- Create a virtual environment in `.venv` (if it doesn't exist)
-- Activate the virtual environment
-- Install all packages from `requirements.txt`
-
-To activate the virtual environment in a new shell session, run:
+## Run plays
 
 ```bash
-source .venv/bin/activate
+uv run ansible-playbook <playbook-*>.yml
 ```
+
+```bash
+uv run ansible-playbook -e "alt_tmpdir=$HOME/.local/tmp" <playbook-*>.yml
+```
+
 ## Drafts
 
 The following plays have not yet migrated to an Ansible playbook.

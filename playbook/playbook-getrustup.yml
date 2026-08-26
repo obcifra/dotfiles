@@ -5,8 +5,8 @@
   environment:
     TMPDIR: "{{ alt_tmpdir | default('/tmp') }}"
   vars:
-    rustup_version: "1.27.1"
-    rustup_checksum: "sha256:f5ba37f2ba68efec101198dca1585e6e7dd7640ca9c526441b729a79062d3b77"
+    rustup_version: "1.29.0"
+    rustup_checksum: "sha256:de73d1a62f4d5409a2f6bdb1c523d8dc08aa6d9d63588db62493c19ca8f8bf55"
   tasks:
     - name: Check installed version of rustup
       ansible.builtin.command: rustup --version
