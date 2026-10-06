@@ -35,6 +35,12 @@ if [ -x "/usr/bin/dircolors" ]; then
 fi
 # }}}
 
+# Environment {{{
+if [ -d "${HOME}/workspace" ]; then
+  export WORKSPACE="${HOME}/workspace"
+fi
+# }}}
+
 # System Path {{{
 if [ -f "${HOME}/.bashrc_local" ]; then
   source "${HOME}/.bashrc_local"
@@ -48,6 +54,15 @@ fi
 if [[ ":${LD_LIBRARY_PATH}:" != *":${HOME}/.local/lib:"* ]]; then
   LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${HOME}/.local/lib"
   export LD_LIBRARY_PATH
+fi
+# }}}
+
+# Git {{{
+if [ -n "$WORKSPACE" ]; then
+  # Remove any previous includeIf for workspace
+  sed -i '/\[includeIf "gitdir:.*\/workspace\/"\]/,+1d' ~/.gitconfig-local 2>/dev/null
+  # Add new includeIf for current $WORKSPACE
+  echo -e "[includeIf \"gitdir:${WORKSPACE}/\"]\n  path = ${WORKSPACE}/.gitconfig" >> ~/.gitconfig-local
 fi
 # }}}
 

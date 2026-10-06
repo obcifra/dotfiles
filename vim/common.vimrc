@@ -75,6 +75,12 @@ set hlsearch
 " Search ignore case
 set smartcase
 set ignorecase
+
+" Use ripgrep, if installed
+if executable('rg')
+  set grepprg=rg\ --vimgrep\ --smart-case\ --hidden
+  "set grepformat=%f:%l:%c:%m
+endif
 " }}}
 
 " ---- Tabs and Spacing {{{
