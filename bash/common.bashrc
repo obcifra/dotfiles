@@ -57,6 +57,20 @@ if [[ ":${LD_LIBRARY_PATH}:" != *":${HOME}/.local/lib:"* ]]; then
 fi
 # }}}
 
+# SSH {{{
+# Set a universal socket path for all terminal sessions
+export SSH_AUTH_SOCK="$HOME/.ssh/ssh-agent.socket"
+
+# If the agent isn't running, start it using our fixed socket path
+if ! pgrep -u "$USER" -x ssh-agent > /dev/null; then
+    rm -f "$SSH_AUTH_SOCK"  # Clean up any stale leftover socket files
+    eval $(ssh-agent -s -a "$SSH_AUTH_SOCK") > /dev/null
+
+    # (Filters out public keys, configs, and known_hosts)
+    find "$HOME/.ssh" -maxdepth 1 -type f ! -name "*.pub" ! -name "config" ! -name "known_hosts" ! -name "authorized_keys" -exec ssh-add {} + 2>/dev/null
+fi
+# }}}
+
 # Git {{{
 if [ -n "$WORKSPACE" ]; then
   # Remove any previous includeIf for workspace
