@@ -3,8 +3,8 @@
   hosts: localhost
   become: false
   vars:
-    nvm_version: "v0.40.1"
-    nvm_checksum: "abdb525ee9f5b48b34d8ed9fc67c6013fb0f659712e401ecd88ab989b3af8f53"
+    nvm_version: "v0.40.8"
+    nvm_checksum: "48a0eee9a60e07422dce0eb5774754c83889570ca1ee2566c516acbe8af03a9e"
     nvm_dir: "{{ ansible_env.HOME }}/.nvm"
   tasks:
     - name: Create default NVM_DIR
@@ -36,4 +36,4 @@
         chdir: "{{ ansible_env.HOME }}"
         executable: /bin/sh
       loop:
-        - 22.11.0
+        - 24.22.0
