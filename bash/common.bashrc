@@ -95,6 +95,7 @@ fi
 # Node {{{
 if [[ -d "$HOME/.nvm" ]]; then
   export NVM_DIR="$HOME/.nvm"
+  export NODE_OPTIONS="--use-system-ca"
   source "$NVM_DIR/nvm.sh"
   # Bash completion
   source "$NVM_DIR/bash_completion"
