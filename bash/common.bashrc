@@ -35,6 +35,10 @@ if [ -x "/usr/bin/dircolors" ]; then
 fi
 # }}}
 
+# Aliases {{{
+alias new-session="${HOME}/dotfiles/tools/new-session.sh"
+# }}}
+
 # Environment {{{
 if [ -d "${HOME}/workspace" ]; then
   export WORKSPACE="${HOME}/workspace"
