@@ -2,18 +2,20 @@
 # Runs the given Ansible playbook using uvx ansible-playbook, or ansible-lint with --check
 
 usage() {
-    echo "Usage: $0 [-c|--check] [-e|--extra-vars VAR=VAL] <playbook-file.yml>"
+    echo "Usage: $0 [-c|--check] [-t|--tmp] [-e|--extra-vars VAR=VAL] <playbook-file.yml>"
     echo "       $0 -h|--help"
     echo "Runs the given Ansible playbook using uvx ansible-playbook, or ansible-lint with --check."
+    echo "  -t, --tmp  Set TMPDIR (default: \${HOME}/.local/tmp) and create it if needed."
 }
 
 set -euo pipefail
 
 CHECK_MODE=0
+USE_ALT_TMPDIR=0
 EXTRA_VARS=()
 
 # Option parsing using getopt
-PARSED=$(getopt -o hce: -l help,check,extra-vars: -- "$@")
+PARSED=$(getopt -o hcte: -l help,check,tmp,extra-vars: -- "$@")
 if [ $? -ne 0 ]; then
     usage >&2
     exit 1
@@ -28,6 +30,10 @@ while true; do
             ;;
         -c|--check)
             CHECK_MODE=1
+            shift
+            ;;
+        -t|--tmp)
+            USE_ALT_TMPDIR=1
             shift
             ;;
         -e|--extra-vars)
@@ -51,6 +57,12 @@ if [ "$#" -ne 1 ]; then
 fi
 
 PLAYBOOK_FILE="$1"
+
+if [ "$USE_ALT_TMPDIR" -eq 1 ]; then
+    TMPDIR="${TMPDIR:-${HOME}/.local/tmp}"
+    mkdir -p -- "$TMPDIR"
+    export TMPDIR
+fi
 
 if [ ! -f "$PLAYBOOK_FILE" ]; then
     echo "Error: File '$PLAYBOOK_FILE' does not exist." >&2
