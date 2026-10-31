@@ -75,17 +75,11 @@ configure_window() {
     tmux respawn-pane -k -t "${editor_pane}" -c "${target_directory}" \
         "${editor_command[@]}" "${target_directory}"
 
-    # These targets are relative to the active window, so the bindings work
-    # for every workspace window created by this script.
-    tmux bind-key j select-pane -t '{bottom-left}' \; resize-pane -Z
-    tmux bind-key l select-pane -t '{top-right}' \; resize-pane -Z
-    tmux bind-key r \
-        if-shell -t '{top-left}' -F '#{pane_dead}' \
-        'respawn-pane -k -t {top-left}' \; \
-        if-shell -t '{top-right}' -F '#{pane_dead}' \
-        'respawn-pane -k -t {top-right}' \; \
-        if-shell -t '{bottom-left}' -F '#{pane_dead}' \
-        'respawn-pane -k -t {bottom-left}'
+    # The targets are relative to the active window, so these prefix bindings
+    # work for every workspace window created by this script.
+    tmux bind-key -T prefix a select-pane -t '{top-right}'
+    tmux bind-key -T prefix e select-pane -t '{top-left}'
+    tmux bind-key -T prefix s select-pane -t '{bottom-left}'
 }
 
 main() {
