@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Initialize a two-pane tmux workspace.
+# Initialize a persistent three-pane tmux workspace.
 set -euo pipefail
 
 readonly PROGRAM_NAME="${0##*/}"
-readonly VERSION="1.0.0"
+readonly VERSION="2.0.0"
 
 usage() {
     cat <<EOF
@@ -29,30 +29,67 @@ require_command() {
     command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
 }
 
-workspace_exists() {
-    tmux list-windows -t "${1}:workspace" >/dev/null 2>&1
+window_name_for_directory() {
+    local target_directory=$1
+    local parent_directory
+
+    # Display the final component at the filesystem root, otherwise retain the
+    # directory and its immediate parent.
+    [[ "${target_directory}" == / ]] && {
+        printf '/\n'
+        return
+    }
+
+    parent_directory=${target_directory%/*}
+    if [[ -z "${parent_directory}" || "${parent_directory}" == / ]]; then
+        printf '%s\n' "${target_directory##*/}"
+    else
+        printf '%s/%s\n' "${parent_directory##*/}" "${target_directory##*/}"
+    fi
 }
 
-configure_workspace() {
+configure_window() {
     local window_target=$1
     local target_directory=$2
     shift 2
     local -a editor_command=("$@")
-    local left_pane right_pane
+    local editor_pane shell_pane agent_pane
 
-    left_pane=$(tmux display-message -p -t "${window_target}" '#{pane_id}')
-    right_pane=$(tmux split-window -d -h -p 60 -P -F '#{pane_id}' \
-        -t "${left_pane}" -c "${target_directory}" \
-        "${editor_command[@]}" "${target_directory}")
-
-    tmux select-pane -t "${left_pane}" -T agent
-    tmux select-pane -t "${right_pane}" -T editor
+    # Start with a shell so remain-on-exit can be enabled before the editor
+    # command is run; an editor that exits immediately must still leave a pane.
+    editor_pane=$(tmux display-message -p -t "${window_target}" '#{pane_id}')
+    tmux set-option -w -t "${window_target}" remain-on-exit on
     tmux set-option -w -t "${window_target}" pane-border-status top
     tmux set-option -w -t "${window_target}" pane-border-format ' #{pane_title} '
+
+    # Split vertically first so the shell spans the bottom 20% of the window.
+    shell_pane=$(tmux split-window -d -v -p 20 -P -F '#{pane_id}' \
+        -t "${editor_pane}" -c "${target_directory}")
+    # The remaining top area is split 60/40 between editor and agent.
+    agent_pane=$(tmux split-window -d -h -p 40 -P -F '#{pane_id}' \
+        -t "${editor_pane}" -c "${target_directory}")
+
+    tmux select-pane -t "${editor_pane}" -T editor
+    tmux select-pane -t "${agent_pane}" -T agent
+    tmux select-pane -t "${shell_pane}" -T shell
+    tmux respawn-pane -k -t "${editor_pane}" -c "${target_directory}" \
+        "${editor_command[@]}" "${target_directory}"
+
+    # These targets are relative to the active window, so the bindings work
+    # for every workspace window created by this script.
+    tmux bind-key j select-pane -t '{bottom-left}' \; resize-pane -Z
+    tmux bind-key l select-pane -t '{top-right}' \; resize-pane -Z
+    tmux bind-key r \
+        if-shell -t '{top-left}' -F '#{pane_dead}' \
+        'respawn-pane -k -t {top-left}' \; \
+        if-shell -t '{top-right}' -F '#{pane_dead}' \
+        'respawn-pane -k -t {top-right}' \; \
+        if-shell -t '{bottom-left}' -F '#{pane_dead}' \
+        'respawn-pane -k -t {bottom-left}'
 }
 
 main() {
-    local parsed_options target_input target_directory session_name window_target
+    local parsed_options target_input target_directory window_name session_name window_target
     local editor_value
     local -a editor_command
     local inside_tmux=false
@@ -94,6 +131,7 @@ main() {
     target_input=${1:-.}
     [[ -d "${target_input}" ]] || die "not a directory: ${target_input}"
     target_directory=$(cd "${target_input}" && pwd -P)
+    window_name=$(window_name_for_directory "${target_directory}")
 
     editor_value=${EDITOR:-vim}
     read -r -a editor_command <<< "${editor_value}"
@@ -102,26 +140,30 @@ main() {
 
     if [[ -n ${TMUX:-} ]]; then
         inside_tmux=true
-        session_name=$(tmux display-message -p '#{session_name}')
+    fi
+
+    if tmux has-session 2>/dev/null; then
+        # A running tmux server always gets a fresh workspace window.  Outside
+        # tmux, attach to an existing session after making that window active.
+        if [[ "${inside_tmux}" == true ]]; then
+            session_name=$(tmux display-message -p '#{session_name}')
+        else
+            read -r session_name < <(tmux list-sessions -F '#{session_name}')
+        fi
+        window_target=$(tmux new-window -d -P -F '#{window_id}' -t "${session_name}" \
+            -n "${window_name}" -c "${target_directory}")
     else
         session_name=$(basename "${target_directory}")
+        window_target=$(tmux new-session -d -P -F '#{window_id}' -s "${session_name}" \
+            -n "${window_name}" -c "${target_directory}")
     fi
 
-    if ! tmux has-session -t "${session_name}" 2>/dev/null; then
-        tmux new-session -d -s "${session_name}" -n workspace -c "${target_directory}"
-        configure_workspace "${session_name}:workspace" "${target_directory}" \
-            "${editor_command[@]}"
-    elif ! workspace_exists "${session_name}"; then
-        window_target=$(tmux new-window -d -P -F '#{window_id}' -t "${session_name}" \
-            -n workspace -c "${target_directory}")
-        configure_workspace "${window_target}" "${target_directory}" \
-            "${editor_command[@]}"
-    fi
+    configure_window "${window_target}" "${target_directory}" \
+        "${editor_command[@]}"
 
-    if [[ "${inside_tmux}" == true ]]; then
-        tmux select-window -t "${session_name}:workspace"
-    else
-        tmux attach-session -t "${session_name}:workspace"
+    tmux select-window -t "${window_target}"
+    if [[ "${inside_tmux}" == false ]]; then
+        tmux attach-session -t "${session_name}"
     fi
 }
 
