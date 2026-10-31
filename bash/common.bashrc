@@ -78,10 +78,7 @@ fi
 
 # Git {{{
 if [ -n "$WORKSPACE" ]; then
-  # Remove any previous includeIf for workspace
-  sed -i '/\[includeIf "gitdir:.*\/workspace\/"\]/,+1d' ~/.gitconfig-local 2>/dev/null
-  # Add new includeIf for current $WORKSPACE
-  echo -e "[includeIf \"gitdir:${WORKSPACE}/\"]\n  path = ${WORKSPACE}/.gitconfig" >> ~/.gitconfig-local
+  echo -e "[includeIf \"gitdir:${WORKSPACE}/\"]\n  path = ${WORKSPACE}/.gitconfig" > ~/.gitconfig-local
 fi
 # }}}
 
