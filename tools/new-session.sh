@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Initialize a persistent three-pane tmux workspace.
+# Initialize a persistent tmux workspace.
 set -euo pipefail
 
 readonly PROGRAM_NAME="${0##*/}"
-readonly VERSION="2.0.0"
+readonly VERSION="2.1.0"
 
 usage() {
     cat <<EOF
@@ -15,6 +15,8 @@ Arguments:
   DIRECTORY              Existing target directory (default: current directory)
 
 Options:
+      --ade              Use editor, agent, and shell panes (default)
+      --ide              Use editor and shell panes
   -h, --help             Display this help and exit
   -v, --version          Display version information and exit
 EOF
@@ -51,7 +53,8 @@ window_name_for_directory() {
 configure_window() {
     local window_target=$1
     local target_directory=$2
-    shift 2
+    local workspace_mode=$3
+    shift 3
     local -a editor_command=("$@")
     local editor_pane shell_pane agent_pane
 
@@ -65,26 +68,30 @@ configure_window() {
     # Split vertically first so the shell spans the bottom 20% of the window.
     shell_pane=$(tmux split-window -d -v -p 20 -P -F '#{pane_id}' \
         -t "${editor_pane}" -c "${target_directory}")
-    # The remaining top area is split 60/40 between editor and agent.
-    agent_pane=$(tmux split-window -d -h -p 40 -P -F '#{pane_id}' \
-        -t "${editor_pane}" -c "${target_directory}")
 
     tmux select-pane -t "${editor_pane}" -T editor
-    tmux select-pane -t "${agent_pane}" -T agent
     tmux select-pane -t "${shell_pane}" -T shell
+    if [[ "${workspace_mode}" == ade ]]; then
+        # The remaining top area is split 60/40 between editor and agent.
+        agent_pane=$(tmux split-window -d -h -p 40 -P -F '#{pane_id}' \
+            -t "${editor_pane}" -c "${target_directory}")
+        tmux select-pane -t "${agent_pane}" -T agent
+    fi
     tmux respawn-pane -k -t "${editor_pane}" -c "${target_directory}" \
         "${editor_command[@]}" "${target_directory}"
 
     # The targets are relative to the active window, so these prefix bindings
     # work for every workspace window created by this script.
-    tmux bind-key -T prefix a select-pane -t '{top-right}'
+    if [[ "${workspace_mode}" == ade ]]; then
+        tmux bind-key -T prefix a select-pane -t '{top-right}'
+    fi
     tmux bind-key -T prefix e select-pane -t '{top-left}'
     tmux bind-key -T prefix s select-pane -t '{bottom-left}'
 }
 
 main() {
     local parsed_options target_input target_directory window_name session_name window_target
-    local editor_value
+    local editor_value selected_mode="" workspace_mode=ade
     local -a editor_command
     local inside_tmux=false
 
@@ -92,7 +99,7 @@ main() {
     require_command getopt
     require_command tmux
 
-    if ! parsed_options=$(getopt --options hv --longoptions help,version \
+    if ! parsed_options=$(getopt --options hv --longoptions ade,ide,help,version \
         --name "${PROGRAM_NAME}" -- "$@"); then
         usage >&2
         exit 2
@@ -103,6 +110,14 @@ main() {
 
     while true; do
         case "$1" in
+            --ade|--ide)
+                workspace_mode=${1#--}
+                if [[ -n "${selected_mode}" && "${selected_mode}" != "${workspace_mode}" ]]; then
+                    die "--ade and --ide are mutually exclusive"
+                fi
+                selected_mode=${workspace_mode}
+                shift
+                ;;
             -h|--help)
                 usage
                 exit 0
@@ -152,7 +167,7 @@ main() {
             -n "${window_name}" -c "${target_directory}")
     fi
 
-    configure_window "${window_target}" "${target_directory}" \
+    configure_window "${window_target}" "${target_directory}" "${workspace_mode}" \
         "${editor_command[@]}"
 
     tmux select-window -t "${window_target}"
