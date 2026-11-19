@@ -113,7 +113,7 @@ run_container() {
     local port
     local env_name
     local env_value
-    declare -a podman_args=(run --rm -it)
+    declare -a podman_args=(run --rm -it --entrypoint /bin/bash )
 
     require_command podman
     find_containers
