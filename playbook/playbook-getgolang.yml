@@ -1,0 +1,19 @@
+---
+- name: Fetch and install Go
+  hosts: localhost
+  vars:
+    package_type: "archive"
+    package_name: "go1.27.4.linux-amd64.tar.gz"
+    package_link: "https://go.dev/dl/{{ package_name }}"
+    package_hash: "7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840"
+    package_bins:
+      - src: "go/bin/go"
+        lnk: "go"
+      - src: "go/bin/gofmt"
+        lnk: "gofmt"
+  tasks:
+    - name: Fetch Package
+      ansible.builtin.include_tasks: tasks/fetch_package.yml
+
+    - name: Install Package
+      ansible.builtin.include_tasks: tasks/install_package.yml
