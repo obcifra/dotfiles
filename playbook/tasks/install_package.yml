@@ -4,6 +4,7 @@
 #
 # Required vars: package_id, package_version, package_name, package_type
 #                ("archive" | "binary"), package_bins [{src, lnk}]
+#                (omit lnk to install a file without symlinking it)
 # Optional vars: package_strip (int) - leading path components to strip
 #                from archives (default 0)
 - name: Set install directory
@@ -29,17 +30,25 @@
     creates: "{{ package_dir }}/{{ package_bins[0].src }}"
   when: package_type == "archive"
 
+- name: Stat fetched {{ package_name }}
+  ansible.builtin.stat:
+    path: "{{ local_cache.path }}/{{ package_name }}"
+  register: fetched_package
+
 - name: Copy {{ package_name }}
   ansible.builtin.copy:
     src: "{{ local_cache.path }}/{{ package_name }}"
     dest: "{{ package_dir }}/{{ package_bins[0].src }}"
     remote_src: true
     mode: "0755"
-  when: package_type == "binary"
+  # In check mode the download is skipped, so the source may not exist yet.
+  when: package_type == "binary" and (fetched_package.stat.exists or not ansible_check_mode)
 
 - name: Create symlinks
   ansible.builtin.file:
     src: "{{ package_dir }}/{{ item.src }}"
     dest: "{{ ansible_env.HOME }}/.local/bin/{{ item.lnk }}"
     state: link
-  loop: "{{ package_bins }}"
+    # In check mode nothing was downloaded, so the link source may not exist yet.
+    force: "{{ ansible_check_mode }}"
+  loop: "{{ package_bins | selectattr('lnk', 'defined') | list }}"

@@ -1,51 +1,36 @@
 ---
-- name: Configure Rust Environment
+- name: Fetch and install rustup
   hosts: localhost
   become: false
-  environment:
-    TMPDIR: "{{ alt_tmpdir | default('/tmp') }}"
   vars:
-    rustup_version: "1.27.1"
-    rustup_checksum: "sha256:f5ba37f2ba68efec101198dca1585e6e7dd7640ca9c526441b729a79062d3b77"
+    package_id: "rustup"
+    package_version: "1.27.1"
+    package_type: "binary"
+    package_name: "rustup-init"
+    package_link: "https://static.rust-lang.org/rustup/archive/{{ package_version }}/x86_64-unknown-linux-gnu/{{ package_name }}"
+    package_hash: "6aeece6993e902708983b209d04c0d1dbb14ebb405ddb87def578d41f920f56d"
+    package_bins:
+      - src: "rustup-init"
   tasks:
     - name: Check installed version of rustup
-      ansible.builtin.command: rustup --version
+      ansible.builtin.command: "{{ ansible_env.HOME }}/.cargo/bin/rustup --version"
       register: rustup_version_check
-      ignore_errors: true
+      failed_when: false
       changed_when: false
+      check_mode: false
 
     - name: Set installed rustup version fact
       ansible.builtin.set_fact:
-        installed_rustup_version: "{{ rustup_version_check.stdout | regex_search('rustup ([0-9.]+)', '\\1') | first }}"
-      when: rustup_version_check.rc == 0
+        installed_rustup_version: "{{ rustup_version_check.stdout | default('') | regex_findall('rustup ([0-9.]+)') | first | default('') }}"
 
-    - name: Create temporary directory
-      ansible.builtin.tempfile:
-        state: directory
-        suffix: ansible
-      register: tmpdir
-      check_mode: false
-      when: installed_rustup_version is not defined or installed_rustup_version != rustup_version
+    - name: Fetch Package
+      ansible.builtin.include_tasks: tasks/fetch_package.yml
 
-    - name: Download rustup installer package
-      ansible.builtin.get_url:
-        url: "https://github.com/rust-lang/rustup/archive/refs/tags/{{ rustup_version }}.tar.gz"
-        dest: "{{ tmpdir.path }}"
-        mode: "0700"
-        checksum: "{{ rustup_checksum }}"
-      when: installed_rustup_version is not defined or installed_rustup_version != rustup_version
+    - name: Install Package
+      ansible.builtin.include_tasks: tasks/install_package.yml
 
-    - name: Unpack rustup installer
-      ansible.builtin.unarchive:
-        src: "{{ tmpdir.path }}/rustup-{{ rustup_version }}.tar.gz"
-        dest: "{{ tmpdir.path }}"
-      when: installed_rustup_version is not defined or installed_rustup_version != rustup_version
-
-    - name: Install rustup
-      ansible.builtin.shell: >
-        ./rustup-{{ rustup_version }}/rustup-init.sh -y --no-modify-path
-      args:
-        creates: "{{ ansible_env.HOME }}/.rustup/settings.toml"
-        chdir: "{{ tmpdir.path }}"
-        executable: /bin/sh
-      when: installed_rustup_version is not defined or installed_rustup_version != rustup_version
+    # rustup-init also upgrades or downgrades an existing install to this version.
+    - name: Run rustup-init
+      ansible.builtin.command: "{{ package_dir }}/rustup-init -y --no-modify-path"
+      when: installed_rustup_version != package_version
+      changed_when: true

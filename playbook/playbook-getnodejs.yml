@@ -1,39 +1,51 @@
 ---
-- name: Configure NodeJS Environment
+- name: Fetch and install Node.js
   hosts: localhost
   become: false
   vars:
-    nvm_version: "v0.40.8"
-    nvm_checksum: "48a0eee9a60e07422dce0eb5774754c83889570ca1ee2566c516acbe8af03a9e"
+    package_id: "nvm"
+    package_version: "0.40.8"
+    package_type: "binary"
+    package_name: "install.sh"
+    package_link: "https://raw.githubusercontent.com/nvm-sh/nvm/v{{ package_version }}/{{ package_name }}"
+    package_hash: "48a0eee9a60e07422dce0eb5774754c83889570ca1ee2566c516acbe8af03a9e"
+    package_bins:
+      - src: "install.sh"
     nvm_dir: "{{ ansible_env.HOME }}/.nvm"
+    node_versions:
+      - 24.22.0
   tasks:
-    - name: Create default NVM_DIR
-      ansible.builtin.file:
-        path: "{{ nvm_dir }}"
-        state: directory
-        mode: "0700"
-
-    - name: Download Node version Manager (NVM) Installer
-      ansible.builtin.get_url:
-        url: "https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_version }}/install.sh"
-        dest: "{{ nvm_dir }}"
-        mode: "0700"
-        checksum: "sha256:{{ nvm_checksum }}"
-
-    - name: Install Node Version Manager (NVM)
-      ansible.builtin.shell: >
-        NVM_DIR={{ nvm_dir }} ./install.sh
+    - name: Check installed version of nvm
+      ansible.builtin.shell: "[ -s '{{ nvm_dir }}/nvm.sh' ] && . '{{ nvm_dir }}/nvm.sh' && nvm --version"
       args:
-        creates: "{{ nvm_dir }}/nvm.sh"
-        chdir: "{{ nvm_dir }}"
-        executable: /bin/sh
+        executable: /bin/bash
+      register: nvm_version_check
+      failed_when: false
+      changed_when: false
+      check_mode: false
+
+    - name: Set installed nvm version fact
+      ansible.builtin.set_fact:
+        installed_nvm_version: "{{ nvm_version_check.stdout | default('') | trim }}"
+
+    - name: Fetch Package
+      ansible.builtin.include_tasks: tasks/fetch_package.yml
+
+    - name: Install Package
+      ansible.builtin.include_tasks: tasks/install_package.yml
+
+    # install.sh also updates an existing nvm to this version.
+    - name: Run nvm installer
+      ansible.builtin.command: "{{ package_dir }}/install.sh"
+      environment:
+        NVM_DIR: "{{ nvm_dir }}"
+        PROFILE: /dev/null
+      when: installed_nvm_version != package_version
+      changed_when: true
 
     - name: Install node.js versions
-      ansible.builtin.shell: >
-        source {{ nvm_dir }}/nvm.sh && nvm install {{ item }}
+      ansible.builtin.shell: ". {{ nvm_dir }}/nvm.sh && nvm install {{ item }}"
       args:
         creates: "{{ nvm_dir }}/versions/node/v{{ item }}"
-        chdir: "{{ ansible_env.HOME }}"
-        executable: /bin/sh
-      loop:
-        - 24.22.0
+        executable: /bin/bash
+      loop: "{{ node_versions }}"
