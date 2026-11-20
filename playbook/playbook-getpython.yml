@@ -1,50 +1,41 @@
+---
 - name: Configure Python Environment
   hosts: localhost
+  become: false
   vars:
-    uv_version: "0.11.0"
-    uv_checksum: "cc0fbb42b3642125f600a55b0b095bea65cddaadb94c6ea2b6ba5d79c5825089"
+    package_id: "uv"
+    package_version: "0.13.9"
+    package_type: "archive"
+    package_name: "uv-x86_64-unknown-linux-gnu.tar.gz"
+    package_link: "https://github.com/astral-sh/uv/releases/download/{{ package_version }}/{{ package_name }}"
+    package_hash: "a7fbaff2b9a271d85c1bdb540941090fd1ce011797b4abeb48e4dcd39c2471d5"
+    package_strip: 1
+    package_bins:
+      - src: "uv"
+        lnk: "uv"
+      - src: "uvx"
+        lnk: "uvx"
     python_versions:
-      - "3.10"
       - "3.11"
       - "3.12"
       - "3.13"
-  become: false
-  environment:
-    TMPDIR: "{{ alt_tmpdir | default('/tmp') }}"
+      - "3.14"
   tasks:
-    - name: Create temporary directory
-      ansible.builtin.tempfile:
-        state: directory
-        suffix: ansible
-      register: tmpdir
-      check_mode: false
+    - name: Fetch uv
+      ansible.builtin.include_tasks: tasks/fetch_package.yml
 
-    - name: Download uv
-      ansible.builtin.get_url:
-        url: "https://releases.astral.sh/github/uv/releases/download/{{ uv_version }}/uv-x86_64-unknown-linux-gnu.tar.gz"
-        dest: "{{ tmpdir.path }}"
-        mode: "0700"
-        checksum: "sha256:{{ uv_checksum }}"
+    - name: Install uv
+      ansible.builtin.include_tasks: tasks/install_package.yml
 
-    - name: Extract uv
-      ansible.builtin.unarchive:
-        src: "{{ tmpdir.path }}/uv-x86_64-unknown-linux-gnu.tar.gz"
-        dest: "{{ ansible_env.HOME }}/.local"
-      args:
-        creates: "{{ ansible_env.HOME }}/.local/uv-x86_64-unknown-linux-gnu"
+    - name: Install Python versions
+      ansible.builtin.command: "{{ ansible_env.HOME }}/.local/bin/uv python install {{ item }}"
+      register: uv_python
+      changed_when: "'Installed' in uv_python.stderr"
+      loop: "{{ python_versions }}"
 
-    - name: Add uv to path
-      ansible.builtin.lineinfile:
-        path: "{{ ansible_env.HOME }}/.bashrc_local"
-        line: "export PATH={{ ansible_env.HOME }}/.local/uv-x86_64-unknown-linux-gnu:$PATH"
-        mode: "0644"
-        create: true
-
-    - name: Install python versions
-      ansible.builtin.shell: |
-        export PATH="{{ ansible_env.HOME }}/.local/uv-x86_64-unknown-linux-gnu:$PATH"
-        uv python install {{ item }}
-      changed_when: false
-      args:
-        executable: /bin/bash
-      with_items: "{{ python_versions }}"
+    # uv is now installed permanently; the bootstrap copy created by
+    # `play --bootstrap` is no longer needed.
+    - name: Remove uv bootstrap
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.local/bootstrap"
+        state: absent

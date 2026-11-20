@@ -1,34 +1,45 @@
 ---
-- name: Create ~/.local/stage
-  ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/stage"
-    state: directory
-    mode: "0700"
-  register: local_stage
+# Installs a fetched package into ~/.local/opt/<package_id>-<package_version>/
+# and symlinks its binaries into ~/.local/bin.
+#
+# Required vars: package_id, package_version, package_name, package_type
+#                ("archive" | "binary"), package_bins [{src, lnk}]
+# Optional vars: package_strip (int) - leading path components to strip
+#                from archives (default 0)
+- name: Set install directory
+  ansible.builtin.set_fact:
+    package_dir: "{{ ansible_env.HOME }}/.local/opt/{{ package_id }}-{{ package_version }}"
 
-- name: Create ~/.local/bin
+- name: Create install and bin directories
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/bin"
+    path: "{{ item.path }}"
     state: directory
-    mode: "0700"
-  register: local_bin
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ package_dir }}", mode: "0755" }
+    - { path: "{{ ansible_env.HOME }}/.local/bin", mode: "0755" }
+  register: install_dirs
 
 - name: Unarchive {{ package_name }}
   ansible.builtin.unarchive:
     src: "{{ local_cache.path }}/{{ package_name }}"
-    dest: "{{ local_stage.path }}"
+    dest: "{{ package_dir }}"
+    extra_opts: "{{ ['--strip-components=' ~ package_strip] if (package_strip | default(0)) | int > 0 else [] }}"
+    remote_src: true
+    creates: "{{ package_dir }}/{{ package_bins[0].src }}"
   when: package_type == "archive"
 
 - name: Copy {{ package_name }}
   ansible.builtin.copy:
     src: "{{ local_cache.path }}/{{ package_name }}"
-    dest: "{{ local_stage.path }}"
-    mode: "0700"
+    dest: "{{ package_dir }}/{{ package_bins[0].src }}"
+    remote_src: true
+    mode: "0755"
   when: package_type == "binary"
 
 - name: Create symlinks
   ansible.builtin.file:
-    src: "{{ local_stage.path }}/{{ item.src }}"
-    dest: "{{ local_bin.path }}/{{ item.lnk }}"
+    src: "{{ package_dir }}/{{ item.src }}"
+    dest: "{{ ansible_env.HOME }}/.local/bin/{{ item.lnk }}"
     state: link
   loop: "{{ package_bins }}"

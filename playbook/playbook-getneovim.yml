@@ -1,31 +1,21 @@
 ---
 - name: Fetch and install Neovim
   hosts: localhost
+  become: false
   vars:
-    neovim_version: "v0.11.1"
-    nevovim_sha256: "92ecb2dbdfbd0c6d79b522e07c879f7743c5d395d0a4f13b0d4f668f8565527a"
+    package_id: "nvim"
+    package_version: "0.12.6"
+    package_type: "archive"
+    package_name: "nvim-linux-x86_64.tar.gz"
+    package_link: "https://github.com/neovim/neovim/releases/download/v{{ package_version }}/{{ package_name }}"
+    package_hash: "474430d53e6264f6d6dd18db42d6dc9df3a1b56ca9e88a325bbf860e1a811d87"
+    package_strip: 1
+    package_bins:
+      - src: "bin/nvim"
+        lnk: "nvim"
   tasks:
-    - name: Ensure ~/.local/bin directory exists
-      ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.local/bin"
-        state: directory
-        mode: '0755'
+    - name: Fetch Package
+      ansible.builtin.include_tasks: tasks/fetch_package.yml
 
-    - name: Download Neovim tarball
-      ansible.builtin.get_url:
-        url: "https://github.com/neovim/neovim/releases/download/{{ neovim_version }}/nvim-linux-x86_64.tar.gz"
-        dest: /tmp/nvim-linux-x86_64.tar.gz
-        mode: "0700"
-        checksum: "sha256:{{ nevovim_sha256 }}"
-
-    - name: Extract Neovim tarball
-      ansible.builtin.unarchive:
-        src: /tmp/nvim-linux-x86_64.tar.gz
-        dest: "{{ ansible_env.HOME }}/.local"
-        remote_src: true
-
-    - name: Create a symlink to nvim binary
-      ansible.builtin.file:
-        src: "{{ ansible_env.HOME }}/.local/nvim-linux-x86_64/bin/nvim"
-        dest: "{{ ansible_env.HOME }}/.local/bin/nvim"
-        state: link
+    - name: Install Package
+      ansible.builtin.include_tasks: tasks/install_package.yml

@@ -1,25 +1,90 @@
 #!/usr/bin/env bash
-# Runs the given Ansible playbook using uvx ansible-playbook, or ansible-lint with --check
+# Runs a playbook with ansible-playbook (optionally as a dry run), or lints it.
 
 usage() {
-    echo "Usage: $0 [-c|--check] [-t|--tmp] [-e|--extra-vars VAR=VAL] <playbook-file.yml>"
-    echo "       $0 -h|--help"
-    echo "Runs the given Ansible playbook using uvx ansible-playbook, or ansible-lint with --check."
-    echo "  -t, --tmp  Set TMPDIR (default: \${HOME}/.local/tmp) and create it if needed."
+    cat <<EOF
+Usage: $0 [-c|--check] [-t|--tmp] [-e|--extra-vars VAR=VAL] <playbook-file.yml>
+       $0 -l|--lint <playbook-file.yml | all>
+       $0 -b|--bootstrap
+       $0 -h|--help
+
+Runs the given Ansible playbook using uvx ansible-playbook. uvx is taken from
+~/.local/bootstrap if present, otherwise from PATH.
+
+  -b, --bootstrap   Download a pinned, checksum-verified uv/uvx into
+                    ~/.local/bootstrap. playbook-getpython.yml installs uv
+                    permanently and removes the bootstrap.
+
+  -c, --check       Dry run: pass --check to ansible-playbook (no changes made).
+  -l, --lint        Run ansible-lint instead of the playbook. Use 'all' as the
+                    file to lint every playbook-*.yml and tasks/*.yml.
+  -t, --tmp         Set TMPDIR (default: \${HOME}/.local/tmp) and create it if needed.
+  -e, --extra-vars  Extra variables (VAR=VAL); may be repeated.
+EOF
 }
 
 set -euo pipefail
 
+# Pinned bootstrap uv (keep in sync with playbook-getpython.yml)
+BOOTSTRAP_UV_VERSION="0.13.9"
+BOOTSTRAP_UV_SHA256="a7fbaff2b9a271d85c1bdb540941090fd1ce011797b4abeb48e4dcd39c2471d5"
+BOOTSTRAP_DIR="${HOME}/.local/bootstrap"
+
+bootstrap_uv() {
+    local arch asset tmp
+    arch="$(uname -m)"
+    if [ "$(uname -s)" != "Linux" ] || [ "$arch" != "x86_64" ]; then
+        echo "Error: bootstrap supports Linux x86_64 only (found $(uname -s) $arch)." >&2
+        return 1
+    fi
+
+    if [ -x "${BOOTSTRAP_DIR}/uv" ] &&
+        [ "$("${BOOTSTRAP_DIR}/uv" --version 2>/dev/null | cut -d' ' -f2)" = "$BOOTSTRAP_UV_VERSION" ]; then
+        echo "uv ${BOOTSTRAP_UV_VERSION} already bootstrapped in ${BOOTSTRAP_DIR}"
+        return 0
+    fi
+
+    asset="uv-x86_64-unknown-linux-gnu.tar.gz"
+    tmp="$(mktemp -d)"
+    # shellcheck disable=SC2064
+    trap "rm -rf -- '$tmp'" RETURN
+
+    curl --fail --silent --show-error --location \
+        --output "${tmp}/${asset}" \
+        "https://github.com/astral-sh/uv/releases/download/${BOOTSTRAP_UV_VERSION}/${asset}"
+    echo "${BOOTSTRAP_UV_SHA256}  ${tmp}/${asset}" | sha256sum --check --quiet -
+
+    mkdir -p -- "${tmp}/extract"
+    tar -xzf "${tmp}/${asset}" -C "${tmp}/extract" --strip-components=1
+
+    mkdir -p -m 0700 -- "$BOOTSTRAP_DIR"
+    install -m 0755 -- "${tmp}/extract/uv" "${tmp}/extract/uvx" "$BOOTSTRAP_DIR/"
+    echo "Bootstrapped uv ${BOOTSTRAP_UV_VERSION} into ${BOOTSTRAP_DIR}"
+}
+
+# Prefer the bootstrap uvx; fall back to uvx on PATH.
+find_uvx() {
+    if [ -x "${BOOTSTRAP_DIR}/uvx" ]; then
+        UVX="${BOOTSTRAP_DIR}/uvx"
+    elif command -v uvx >/dev/null 2>&1; then
+        UVX="$(command -v uvx)"
+    else
+        echo "Error: uvx not found. Run '$0 --bootstrap' first." >&2
+        exit 3
+    fi
+}
+
+BOOTSTRAP_MODE=0
 CHECK_MODE=0
+LINT_MODE=0
 USE_ALT_TMPDIR=0
 EXTRA_VARS=()
 
 # Option parsing using getopt
-PARSED=$(getopt -o hcte: -l help,check,tmp,extra-vars: -- "$@")
-if [ $? -ne 0 ]; then
+PARSED=$(getopt -o hbclte: -l help,bootstrap,check,lint,tmp,extra-vars: -- "$@") || {
     usage >&2
     exit 1
-fi
+}
 eval set -- "$PARSED"
 
 while true; do
@@ -28,8 +93,16 @@ while true; do
             usage
             exit 0
             ;;
+        -b|--bootstrap)
+            BOOTSTRAP_MODE=1
+            shift
+            ;;
         -c|--check)
             CHECK_MODE=1
+            shift
+            ;;
+        -l|--lint)
+            LINT_MODE=1
             shift
             ;;
         -t|--tmp)
@@ -51,12 +124,22 @@ while true; do
     esac
 done
 
-if [ "$#" -ne 1 ]; then
+if [ "$BOOTSTRAP_MODE" -eq 1 ]; then
+    if [ "$#" -ne 0 ] || [ "$LINT_MODE" -eq 1 ] || [ "$CHECK_MODE" -eq 1 ]; then
+        echo "Error: --bootstrap takes no playbook and no other mode." >&2
+        exit 1
+    fi
+elif [ "$#" -ne 1 ]; then
     usage >&2
     exit 1
 fi
 
-PLAYBOOK_FILE="$1"
+if [ "$LINT_MODE" -eq 1 ] && [ "$CHECK_MODE" -eq 1 ]; then
+    echo "Error: --lint and --check are mutually exclusive." >&2
+    exit 1
+fi
+
+PLAYBOOK_FILE="${1:-}"
 
 if [ "$USE_ALT_TMPDIR" -eq 1 ]; then
     TMPDIR="${TMPDIR:-${HOME}/.local/tmp}"
@@ -64,13 +147,40 @@ if [ "$USE_ALT_TMPDIR" -eq 1 ]; then
     export TMPDIR
 fi
 
+if [ "$BOOTSTRAP_MODE" -eq 1 ]; then
+    bootstrap_uv
+    exit
+fi
+
+find_uvx
+
+if [ "$LINT_MODE" -eq 1 ]; then
+    if [ "$PLAYBOOK_FILE" = "all" ]; then
+        cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+        shopt -s nullglob
+        files=(playbook-*.yml tasks/*.yml)
+        if [ "${#files[@]}" -eq 0 ]; then
+            echo "Error: no playbooks found to lint." >&2
+            exit 2
+        fi
+        exec "$UVX" ansible-lint "${files[@]}"
+    fi
+fi
+
 if [ ! -f "$PLAYBOOK_FILE" ]; then
     echo "Error: File '$PLAYBOOK_FILE' does not exist." >&2
     exit 2
 fi
 
-if [ "$CHECK_MODE" -eq 1 ]; then
-    uvx ansible-lint "$PLAYBOOK_FILE"
-else
-    uvx --from ansible-core ansible-playbook "${EXTRA_VARS[@]}" "$PLAYBOOK_FILE"
+if [ "$LINT_MODE" -eq 1 ]; then
+    exec "$UVX" ansible-lint "$PLAYBOOK_FILE"
 fi
+
+ARGS=()
+if [ "$CHECK_MODE" -eq 1 ]; then
+    ARGS+=("--check")
+fi
+
+# ${arr[@]+...} avoids "unbound variable" on empty arrays (bash < 4.4, set -u)
+exec "$UVX" --from ansible-core ansible-playbook \
+    ${ARGS[@]+"${ARGS[@]}"} ${EXTRA_VARS[@]+"${EXTRA_VARS[@]}"} "$PLAYBOOK_FILE"

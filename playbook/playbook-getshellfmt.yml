@@ -2,21 +2,23 @@
 - name: Fetch and install Shellfmt
   hosts: localhost
   vars:
+    package_id: "shfmt"
+    package_version: "3.11.0"
     package_type: "binary"
-    package_link: "https://github.com/mvdan/sh/releases/download/v3.11.0/{{ package_name }}"
+    package_link: "https://github.com/mvdan/sh/releases/download/v{{ package_version }}/{{ package_name }}"
     package_bins:
       - src: "{{ package_name }}"
         lnk: "shfmt"
   tasks:
     - name: Set Linux package variables
       ansible.builtin.set_fact:
-        package_name: "shfmt_v3.11.0_linux_amd64"
+        package_name: "shfmt_v{{ package_version }}_linux_amd64"
         package_hash: "1904ec6bac715c1d05cd7f6612eec8f67a625c3749cb327e5bfb4127d09035ff"
       when: ansible_system == "Linux"
 
     - name: Set macOS package variables
       ansible.builtin.set_fact:
-        package_name: "shfmt_v3.11.0_darwin_amd64"
+        package_name: "shfmt_v{{ package_version }}_darwin_amd64"
         package_hash: "810a76cb7c78351e021c8025f344b12149d8426ce51609a179af68109ed5698e"
       when: ansible_system == "Darwin"
 

@@ -2,12 +2,14 @@
 - name: Fetch and install 1Password CLI
   hosts: localhost
   vars:
+    package_id: "op"
+    package_version: "2.31.1"
     package_type: "archive"
-    package_name: "op_linux_amd64_v2.31.1.zip"
-    package_link: "https://cache.agilebits.com/dist/1P/op2/pkg/v2.31.1/{{ package_name }}"
+    package_name: "op_linux_amd64_v{{ package_version }}.zip"
+    package_link: "https://cache.agilebits.com/dist/1P/op2/pkg/v{{ package_version }}/{{ package_name }}"
     package_hash: "2e98f0df5977f57bcb2f3e8835e2837660ee4915456ee8ed124e0588a429a5c9"
     package_bins:
-      - src: "op_linux_amd64_v2.31.1/op"
+      - src: "op"
         lnk: "op"
   tasks:
     - name: Fetch Package

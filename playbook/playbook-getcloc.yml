@@ -2,12 +2,14 @@
 - name: Fetch and install cloc
   hosts: localhost
   vars:
+    package_id: "cloc"
+    package_version: "2.06"
     package_type: "archive"
-    package_name: "cloc-2.06.tar.gz"
-    package_link: "https://github.com/AlDanial/cloc/releases/download/v2.06/{{ package_name }}"
+    package_name: "cloc-{{ package_version }}.tar.gz"
+    package_link: "https://github.com/AlDanial/cloc/releases/download/v{{ package_version }}/{{ package_name }}"
     package_hash: "27b6b007a5d482e5f50b23984cbe10f6a9f26e1052e9c7e010edfdcf879dc554"
     package_bins:
-      - src: "cloc-2.06/cloc"
+      - src: "cloc-{{ package_version }}/cloc"
         lnk: "cloc"
   tasks:
     - name: Fetch Package

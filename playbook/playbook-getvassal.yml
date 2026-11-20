@@ -2,12 +2,14 @@
 - name: Fetch and install Vassal
   hosts: localhost
   vars:
+    package_id: "vassal"
+    package_version: "3.7.16"
     package_type: "archive"
-    package_name: "VASSAL-3.7.16-linux.tar.bz2"
-    package_link: "https://github.com/vassalengine/vassal/releases/download/3.7.16/{{ package_name }}"
+    package_name: "VASSAL-{{ package_version }}-linux.tar.bz2"
+    package_link: "https://github.com/vassalengine/vassal/releases/download/{{ package_version }}/{{ package_name }}"
     package_hash: "1629a09df1ff352a83ba791d2a002f4cf8bb2ca37db731bdc93aacc1626901aa"
     package_bins:
-      - src: "VASSAL-3.7.16/VASSAL.sh"
+      - src: "VASSAL-{{ package_version }}/VASSAL.sh"
         lnk: "vassal"
   tasks:
     - name: Fetch Package
