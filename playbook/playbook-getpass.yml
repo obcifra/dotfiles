@@ -1,0 +1,29 @@
+---
+- name: Fetch and install pass
+  hosts: localhost
+  become: false
+  vars:
+    package_id: "pass"
+    package_version: "1.7.4"
+    package_type: "archive"
+    package_name: "password-store-{{ package_version }}.tar.xz"
+    package_link: "https://git.zx2c4.com/password-store/snapshot/{{ package_name }}"
+    package_hash: "4c2d0a8b99df8915a87099607a8d912fd05d30651b6f014745c14e4ca8dbbfb7"
+    package_strip: 1
+    package_bins:
+      - src: "src/password-store.sh"
+    pass_wrapper: |
+      #!/usr/bin/env bash
+      exec "{{ ansible_env.HOME }}/.local/opt/{{ package_id }}-{{ package_version }}/src/password-store.sh" "$@"
+  tasks:
+    - name: Fetch Package
+      ansible.builtin.include_tasks: tasks/fetch_package.yml
+
+    - name: Install Package
+      ansible.builtin.include_tasks: tasks/install_package.yml
+
+    - name: Create pass launcher
+      ansible.builtin.copy:
+        content: "{{ pass_wrapper }}"
+        dest: "{{ ansible_env.HOME }}/.local/bin/pass"
+        mode: "0755"
