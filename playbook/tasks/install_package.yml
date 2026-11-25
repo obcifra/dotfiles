@@ -28,7 +28,8 @@
     extra_opts: "{{ ['--strip-components=' ~ package_strip] if (package_strip | default(0)) | int > 0 else [] }}"
     remote_src: true
     creates: "{{ package_dir }}/{{ package_bins[0].src }}"
-  when: package_type == "archive"
+  # In check mode the download is skipped, so there is nothing to unpack yet.
+  when: package_type == "archive" and not ansible_check_mode
 
 - name: Stat fetched {{ package_name }}
   ansible.builtin.stat:

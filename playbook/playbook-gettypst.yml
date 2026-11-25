@@ -1,30 +1,21 @@
 ---
-- name: Install Typst
+- name: Fetch and install Typst
   hosts: localhost
   become: false
+  vars:
+    package_id: "typst"
+    package_version: "0.15.1"
+    package_type: "archive"
+    package_name: "typst-x86_64-unknown-linux-musl.tar.xz"
+    package_link: "https://github.com/typst/typst/releases/download/v{{ package_version }}/{{ package_name }}"
+    package_hash: "a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c"
+    package_strip: 1
+    package_bins:
+      - src: "typst"
+        lnk: "typst"
   tasks:
-    - name: Create temporary directory
-      ansible.builtin.tempfile:
-        state: directory
-        suffix: ansible
-      register: tmpdir
-      check_mode: false
+    - name: Fetch Package
+      ansible.builtin.include_tasks: tasks/fetch_package.yml
 
-    - name: Download Typst
-      ansible.builtin.get_url:
-        url: "https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz"
-        dest: "{{ tmpdir.path }}"
-        mode: "0700"
-        checksum: "sha256:a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c"
-
-    - name: Extract Typst bundle
-      ansible.builtin.unarchive:
-        src: "{{ tmpdir.path }}/typst-x86_64-unknown-linux-musl.tar.xz"
-        dest: "{{ ansible_env.HOME }}/.local"
-
-    - name: Add Typst to path
-      ansible.builtin.lineinfile:
-        path: "{{ ansible_env.HOME }}/.bashrc_local"
-        line: "export PATH={{ ansible_env.HOME }}/.local/typst-x86_64-unknown-linux-musl:$PATH"
-        mode: "0644"
-        create: true
+    - name: Install Package
+      ansible.builtin.include_tasks: tasks/install_package.yml
