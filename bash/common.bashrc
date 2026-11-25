@@ -38,6 +38,7 @@ fi
 # Aliases {{{
 alias new-session="${HOME}/dotfiles/tools/new-session.sh"
 alias devcontainer="${HOME}/dotfiles/tools/devcontainer.sh"
+alias play="${HOME}/dotfiles/playbook/play"
 # }}}
 
 # Environment {{{

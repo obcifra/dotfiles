@@ -172,6 +172,11 @@ if [ ! -f "$PLAYBOOK_FILE" ]; then
     exit 2
 fi
 
+# Resolve the file, then run from this directory so ansible.cfg and
+# .ansible-lint apply regardless of the caller's working directory.
+PLAYBOOK_FILE="$(realpath -- "$PLAYBOOK_FILE")"
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+
 if [ "$LINT_MODE" -eq 1 ]; then
     exec "$UVX" ansible-lint "$PLAYBOOK_FILE"
 fi

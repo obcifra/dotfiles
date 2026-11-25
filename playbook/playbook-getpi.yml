@@ -1,0 +1,25 @@
+---
+- name: Install Pi coding agent
+  hosts: localhost
+  become: false
+  vars:
+    pi_install_url: "https://pi.dev/install.sh"
+    pi_bin: "{{ ansible_env.HOME }}/.pi/agent/bin/pi"
+  tasks:
+    - name: Install pi via the official installer
+      ansible.builtin.shell: |
+        set -o pipefail
+        curl -fsSL {{ pi_install_url }} | sh
+      args:
+        executable: /bin/bash
+        creates: "{{ pi_bin }}"
+
+    - name: Verify pi is installed
+      ansible.builtin.command: "{{ pi_bin }} --version"
+      register: pi_version
+      changed_when: false
+      check_mode: false
+
+    - name: Show pi version
+      ansible.builtin.debug:
+        msg: "{{ pi_version.stdout }}"
