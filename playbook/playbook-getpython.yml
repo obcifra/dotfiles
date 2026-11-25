@@ -28,7 +28,7 @@
       ansible.builtin.include_tasks: tasks/install_package.yml
 
     - name: Install Python versions
-      ansible.builtin.command: "{{ ansible_env.HOME }}/.local/bin/uv python install {{ item }}"
+      ansible.builtin.command: "{{ ansible_facts['env']['HOME'] }}/.local/bin/uv python install {{ item }}"
       register: uv_python
       changed_when: "'Installed' in uv_python.stderr"
       loop: "{{ python_versions }}"
@@ -37,5 +37,5 @@
     # `play --bootstrap` is no longer needed.
     - name: Remove uv bootstrap
       ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.local/bootstrap"
+        path: "{{ ansible_facts['env']['HOME'] }}/.local/bootstrap"
         state: absent

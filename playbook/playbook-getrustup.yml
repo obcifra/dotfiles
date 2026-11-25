@@ -13,7 +13,7 @@
       - src: "rustup-init"
   tasks:
     - name: Check installed version of rustup
-      ansible.builtin.command: "{{ ansible_env.HOME }}/.cargo/bin/rustup --version"
+      ansible.builtin.command: "{{ ansible_facts['env']['HOME'] }}/.cargo/bin/rustup --version"
       register: rustup_version_check
       failed_when: false
       changed_when: false

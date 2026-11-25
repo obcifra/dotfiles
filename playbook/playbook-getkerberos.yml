@@ -8,7 +8,7 @@
   tasks:
     - name: Get checksum of Kerberos installer
       ansible.builtin.stat:
-        path: "{{ ansible_env.HOME }}/Downloads/{{ kerberos }}"
+        path: "{{ ansible_facts['env']['HOME'] }}/Downloads/{{ kerberos }}"
         checksum_algorithm: sha256
       register: kerberos_stat
 
@@ -28,7 +28,7 @@
       ansible.builtin.shell: |
         set -o pipefail
         rpm2cpio "{{ kerberos_stat.stat.path }}" | cpio -idmv -D "{{ tmpdir.path }}"
-        tar -C "{{ tmpdir.path }}" -cf - . | tar --strip-components=3 -C "{{ ansible_env.HOME }}/.local"  -xf -
+        tar -C "{{ tmpdir.path }}" -cf - . | tar --strip-components=3 -C "{{ ansible_facts['env']['HOME'] }}/.local"  -xf -
       args:
         executable: /bin/bash
-        creates: "${{ ansible_env.HOME }}/.local/krb5"
+        creates: "${{ ansible_facts['env']['HOME'] }}/.local/krb5"

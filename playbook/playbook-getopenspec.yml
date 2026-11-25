@@ -15,25 +15,25 @@
       ansible.builtin.set_fact:
         package_name: "openspec-linux-x64.tar.gz"
         package_hash: "f91f0bc22ecd51279178bf91aaf6149ceba5b95dae9cc46f80f91fb14633e594"
-      when: ansible_system == "Linux" and ansible_architecture == "x86_64"
+      when: ansible_facts['system'] == "Linux" and ansible_facts['architecture'] == "x86_64"
 
     - name: Set Linux aarch64 package variables
       ansible.builtin.set_fact:
         package_name: "openspec-linux-arm64.tar.gz"
         package_hash: "a3d3f4398579358816a4e6e6306a4dac998f81fa5b3292edaa1a478d4acdd0d7"
-      when: ansible_system == "Linux" and ansible_architecture == "aarch64"
+      when: ansible_facts['system'] == "Linux" and ansible_facts['architecture'] == "aarch64"
 
     - name: Set macOS x86_64 package variables
       ansible.builtin.set_fact:
         package_name: "openspec-darwin-x64.tar.gz"
         package_hash: "b35400e0c95b7078287e48e30ebfe76550699ae8291ffe63312d4d352f31fe86"
-      when: ansible_system == "Darwin" and ansible_architecture == "x86_64"
+      when: ansible_facts['system'] == "Darwin" and ansible_facts['architecture'] == "x86_64"
 
     - name: Set macOS arm64 package variables
       ansible.builtin.set_fact:
         package_name: "openspec-darwin-arm64.tar.gz"
         package_hash: "d46a773862f31c317f221e52045767fd132c87cf839b800e6728e975b2a5842a"
-      when: ansible_system == "Darwin" and ansible_architecture == "arm64"
+      when: ansible_facts['system'] == "Darwin" and ansible_facts['architecture'] == "arm64"
 
     - name: Fetch Package
       ansible.builtin.include_tasks: tasks/fetch_package.yml

@@ -40,7 +40,7 @@ ships a release tarball or single binary. See `playbook-getneovim.yml`.
 - YAML: 2-space indent, double-quoted strings, file modes quoted (`"0755"`).
 - All variables live in play-level `vars:`; no versions, URLs or hashes inline
   in tasks. Prefix role-specific vars with the tool (`nvm_version`).
-- Never hard-code `/home/<user>`; use `ansible_env.HOME`.
+- Never hard-code `/home/<user>`; use `ansible_facts['env']['HOME']`.
 - Temp files: use `ansible.builtin.tempfile` (honours `TMPDIR`) with
   `check_mode: false`, and remove it in an `always:` block or `post_tasks`.
 - Playbooks are comment-light; add a short header comment only for non-obvious

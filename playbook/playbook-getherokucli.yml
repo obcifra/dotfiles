@@ -20,11 +20,11 @@
     - name: Extract Heroku CLI bundle
       ansible.builtin.unarchive:
         src: "{{ tmpdir.path }}/heroku-linux-x64.tar.gz"
-        dest: "{{ ansible_env.HOME }}/.local"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local"
 
     - name: Add Heroku CLI to path
       ansible.builtin.lineinfile:
-        path: "{{ ansible_env.HOME }}/.bashrc_local"
-        line: "export PATH={{ ansible_env.HOME }}/.local/heroku/bin:$PATH"
+        path: "{{ ansible_facts['env']['HOME'] }}/.bashrc_local"
+        line: "export PATH={{ ansible_facts['env']['HOME'] }}/.local/heroku/bin:$PATH"
         mode: "0644"
         create: true

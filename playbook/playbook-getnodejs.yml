@@ -11,7 +11,7 @@
     package_hash: "48a0eee9a60e07422dce0eb5774754c83889570ca1ee2566c516acbe8af03a9e"
     package_bins:
       - src: "install.sh"
-    nvm_dir: "{{ ansible_env.HOME }}/.nvm"
+    nvm_dir: "{{ ansible_facts['env']['HOME'] }}/.nvm"
     node_versions:
       - 24.22.0
   tasks:

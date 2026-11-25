@@ -9,7 +9,7 @@
 #                from archives (default 0)
 - name: Set install directory
   ansible.builtin.set_fact:
-    package_dir: "{{ ansible_env.HOME }}/.local/opt/{{ package_id }}-{{ package_version }}"
+    package_dir: "{{ ansible_facts['env']['HOME'] }}/.local/opt/{{ package_id }}-{{ package_version }}"
 
 - name: Create install and bin directories
   ansible.builtin.file:
@@ -18,7 +18,7 @@
     mode: "{{ item.mode }}"
   loop:
     - { path: "{{ package_dir }}", mode: "0755" }
-    - { path: "{{ ansible_env.HOME }}/.local/bin", mode: "0755" }
+    - { path: "{{ ansible_facts['env']['HOME'] }}/.local/bin", mode: "0755" }
   register: install_dirs
 
 - name: Unarchive {{ package_name }}
@@ -48,7 +48,7 @@
 - name: Create symlinks
   ansible.builtin.file:
     src: "{{ package_dir }}/{{ item.src }}"
-    dest: "{{ ansible_env.HOME }}/.local/bin/{{ item.lnk }}"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/{{ item.lnk }}"
     state: link
     # In check mode nothing was downloaded, so the link source may not exist yet.
     force: "{{ ansible_check_mode }}"

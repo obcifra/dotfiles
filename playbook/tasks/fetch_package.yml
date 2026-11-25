@@ -1,7 +1,7 @@
 ---
 - name: Create local cache directory
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/cache"
+    path: "{{ ansible_facts['env']['HOME'] }}/.local/cache"
     state: directory
     mode: "0700"
   register: local_cache

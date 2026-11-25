@@ -14,13 +14,13 @@
       ansible.builtin.set_fact:
         package_name: "shellcheck-v{{ package_version }}.linux.x86_64.tar.xz"
         package_hash: "6c881ab0698e4e6ea235245f22832860544f17ba386442fe7e9d629f8cbedf87"
-      when: ansible_system == "Linux"
+      when: ansible_facts['system'] == "Linux"
 
     - name: Set macOS package variables
       ansible.builtin.set_fact:
         package_name: "shellcheck-v{{ package_version }}.darwin.x86_64.tar.xz"
         package_hash: "ef27684f23279d112d8ad84e0823642e43f838993bbb8c0963db9b58a90464c2"
-      when: ansible_system == "Darwin"
+      when: ansible_facts['system'] == "Darwin"
 
     - name: Fetch Package
       ansible.builtin.include_tasks: tasks/fetch_package.yml

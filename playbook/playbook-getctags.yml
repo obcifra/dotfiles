@@ -25,7 +25,7 @@
     - name: Unarchive ctags package to  ~/.local
       ansible.builtin.unarchive:
         src: "{{ tmpdir.path }}/{{ package }}"
-        dest: "{{ ansible_env.HOME }}/.local/"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/"
         extra_opts: ["--strip-components=1"]
         remote_src: true
-        creates: "{{ ansible_env.HOME }}/.local/bin/ctags"
+        creates: "{{ ansible_facts['env']['HOME'] }}/.local/bin/ctags"

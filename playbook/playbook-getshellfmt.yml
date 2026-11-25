@@ -14,13 +14,13 @@
       ansible.builtin.set_fact:
         package_name: "shfmt_v{{ package_version }}_linux_amd64"
         package_hash: "1904ec6bac715c1d05cd7f6612eec8f67a625c3749cb327e5bfb4127d09035ff"
-      when: ansible_system == "Linux"
+      when: ansible_facts['system'] == "Linux"
 
     - name: Set macOS package variables
       ansible.builtin.set_fact:
         package_name: "shfmt_v{{ package_version }}_darwin_amd64"
         package_hash: "810a76cb7c78351e021c8025f344b12149d8426ce51609a179af68109ed5698e"
-      when: ansible_system == "Darwin"
+      when: ansible_facts['system'] == "Darwin"
 
     - name: Fetch Package
       ansible.builtin.include_tasks: tasks/fetch_package.yml

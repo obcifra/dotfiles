@@ -31,8 +31,8 @@
 
     - name: Install Anki
       ansible.builtin.shell: >
-        PREFIX="{{ ansible_env.HOME }}/.local" ./install.sh
+        PREFIX="{{ ansible_facts['env']['HOME'] }}/.local" ./install.sh
       args:
-        creates: "{{ ansible_env.HOME }}/.local/bin/anki"
+        creates: "{{ ansible_facts['env']['HOME'] }}/.local/bin/anki"
         chdir: "{{ tmpdir.path }}"
         executable: /bin/sh

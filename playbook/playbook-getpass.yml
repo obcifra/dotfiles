@@ -14,7 +14,7 @@
       - src: "src/password-store.sh"
     pass_wrapper: |
       #!/usr/bin/env bash
-      exec "{{ ansible_env.HOME }}/.local/opt/{{ package_id }}-{{ package_version }}/src/password-store.sh" "$@"
+      exec "{{ ansible_facts['env']['HOME'] }}/.local/opt/{{ package_id }}-{{ package_version }}/src/password-store.sh" "$@"
   tasks:
     - name: Fetch Package
       ansible.builtin.include_tasks: tasks/fetch_package.yml
@@ -25,5 +25,5 @@
     - name: Create pass launcher
       ansible.builtin.copy:
         content: "{{ pass_wrapper }}"
-        dest: "{{ ansible_env.HOME }}/.local/bin/pass"
+        dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/pass"
         mode: "0755"

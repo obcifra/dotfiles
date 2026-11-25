@@ -4,7 +4,7 @@
   become: false
   vars:
     pi_install_url: "https://pi.dev/install.sh"
-    pi_bin: "{{ ansible_env.HOME }}/.pi/agent/bin/pi"
+    pi_bin: "{{ ansible_facts['env']['HOME'] }}/.pi/agent/bin/pi"
   tasks:
     - name: Install pi via the official installer
       ansible.builtin.shell: |
